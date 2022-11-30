@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<!--
+
+	This is a very old script of mine I modified to put it on github
+	It shows proper histogram, but has its problems. Especially the rate
+	thing. What I changed is, it is now possible to use different size
+	and aspect ratio for the histogram so it is more dynamic like that.
+
+-->
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+		<title>HTML5 Canvas histogram</title>
+		<meta name="description" content="This script calculates histogram of image from HTML5 canvas.">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<style>
+		*{
+			box-sizing: border-box;
+		}
+		html,body{margin:0;padding:3px;}
+		span{cursor:pointer;color:#6175b9}
+		span:hover{text-decoration:underline}
+		footer{width:100%;text-align:center;font-size:12px;}
+		#histogram,#histogram2{border:1px solid #000;background:#efefef;}
+	
+		</style>
+		<base href="." target="_blank">
+	</head>
+	
+	<body>
+		<header>
+			<h1>Canvas Histogram</h1>
+		</header>
+		<article>
+			<p>This is a very basic and far from perfect canvas color / brightness histogram script that I stopped developing because I just wanted to see the concept working. It needs a lot of development; this is just a scratch. I put some test images in it so you can see it working. 
+			<br><br>Things to do:
+			</p>
+			<ul>
+				<li>Better algorithm</li>
+				<li>Code optimisation</li>
+			</ul>
+		</article>
+		
+		<aside>What is histogram? Best explanation ever: <a href="https://www.youtube.com/watch?v=CIbcS6Qkel8">CLICK</a></aside>
+	
+
+		<h2>Tests</h2>
+		<span id="one">Test 1</span>, <span id="two">Test 2</span>, <span id="three">Test 3</span><br>Note: Test 3 is a fully b&w images so all red, green and blue values are the same. You see only the blue because that is the last value drawn so it hides the others.<p></p>
+		<canvas id="histogram" width="400" height="200"></canvas> 
+		<canvas id="histogram2" width="400" height="200"></canvas><br>
+		<canvas id="c" width="900" height="506"></canvas>
+		<footer>Created by <a href="https://github.com/akosnikhazy">Ákos Nikházy</a> <a href="http://twitter.com/nikhazyakos">@nikhazyakos</a></footer>
+		
+		<script>
+			"use strict";
+			function changeImage(id,context,canvas,newRate)
+			{// Stuff for this demo to work with test images. Every image has a number as name thats all. also clearing canvases
+				let c = document.getElementById(id);
+				c.onclick=function(){
+					if(active != id){
+						
+						context[0].clearRect(0, 0, canvas[0].width, canvas[0].height);
+						context[1].clearRect(0, 0, canvas[1].width, canvas[1].height);
+						context[2].clearRect(0, 0, canvas[2].width, canvas[2].height);
+						rate = newRate;
+						active = id;
+						img.src = id +'.jpg';
+					}
+				};
+				
+			}
+			
+			function pixelColorValues (context,canvas)
+			{	// not considering alpha this time
+				// returning how many pixels are on given color value
+				let imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+				let pixels  = imgData.data;
+				
+				
+				//  all possible red, green and blue values got an array value from 0 to 255
+				let red =   new Array(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+				let green = new Array(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0); 
+				let blue =  new Array(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+				
+				// this ads +1 to given color channel's given value
+				for (var i = 0, n = pixels.length; i < n; i += 4) 
+				{
+					red		[pixels[i  ]]++;      
+					green	[pixels[i+1]]++;     
+					blue	[pixels[i+2]]++;        
+				}
+				
+				// return the color value counts and the number of pixels
+				return [red,green,blue];
+			}
+			
+			function pixelBrightnessValues (context,canvas)
+			{	// not considering alpha this time
+				// returning how many pixels are on given color value
+				let imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+				let pixels  = imgData.data;
+				
+				let avg = new Array();
+				
+				let b 	= new Array(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+				
+				// this ads +1 to given color channel's given value
+				for (let i = 0, n = pixels.length; i < n; i += 4) 
+				{
+					avg[i] = (pixels[i]+pixels[i+1]+pixels[i+2])/3;
+				}
+				for (let i = 0, n = avg.length; i < n; i += 1) 
+				{
+					b[avg[i]]++;
+				}
+				// return the color value counts and the number of pixels
+				return b;
+			}
+			
+			function valuesByRate(rate,values)
+			{
+				for (let i = 0, n = values.length; i < n; i += 1) 
+				{	
+					values[i] = Math.floor((values[i]/100)*rate);
+				}
+				
+				return values;
+			}
+			
+			function drawHistogram(context,values,color,lineWidth,maxHeight)
+			{
+				
+				context.beginPath();
+				for(let i = 0; i < 256; i += 1)
+				{
+					
+					context.lineWidth	= lineWidth;
+					context.strokeStyle = color;
+					context.moveTo(i*lineWidth,maxHeight);
+					context.lineTo(i*lineWidth,maxHeight-values[i]);
+					
+				}
+				context.stroke();
+			}
+			
+			// Image examined
+			var c 				= document.getElementById('c');
+			var context 		= c.getContext('2d',{depth:true,alpha:false,willReadFrequently:true});
+			var img 			= new Image();
+			
+			// RGB histogram
+			var hc 				= document.getElementById('histogram');
+			var hcontext 		= hc.getContext('2d',{stencil:true,willReadFrequently:true});
+			
+			var histogramWidth	= hc.width; 
+			var histogramHeight = hc.height; 
+
+			//  Brightness histogram 
+			var h2c 			= document.getElementById('histogram2');
+			var h2context 		= h2c.getContext('2d',{stencil:true,willReadFrequently:true});
+			
+			var histogramWidth2	= h2c.width; 
+			var histogramHeight2= h2c.height;
+		
+
+			var rate = 25; // so we see lines. Even a small image has so many pixels we need to turn the sizes down.
+			
+			// we do the stuff in here after image loaded
+			img.onload = function() 
+			{
+				// draw image for show
+				c.width 	= img.width;
+				c.height 	= img.height;
+				
+				context.drawImage(img, 0, 0);
+				
+				// histogram data
+				let pCV = pixelColorValues (context,c);
+				let pBV = pixelBrightnessValues (context,c);
+				
+				let percentage = (histogramHeight/(img.width*img.height/rate))*100;
+				
+				let lineWidth = histogramWidth/256;
+				let lineWidth2 = histogramWidth2/256;
+				// Color histogram
+	            let r = valuesByRate(percentage,pCV[0]);
+	            let g = valuesByRate(percentage,pCV[1]);
+	            let b = valuesByRate(percentage,pCV[2]);
+	            
+				console.log(histogramWidth,lineWidth);
+
+				// draw the three color histograms on the same canvas.
+				drawHistogram(hcontext,r,'#ff0000',lineWidth,histogramHeight);
+				drawHistogram(hcontext,g,'#00ff00',lineWidth,histogramHeight);
+				drawHistogram(hcontext,b,'#0000ff',lineWidth,histogramHeight);
+				
+				// Brightness histogram oneliner. Same as colors but without another array.
+				drawHistogram(h2context,valuesByRate(percentage,pBV),'#000000',lineWidth2,histogramHeight2)
+
+			};
+
+			img.src = 'one.jpg';
+			
+			// Stuff for this demo to work with test images.
+			var active = 'one';
+			changeImage('one',	[context,hcontext,h2context],[c,hc,h2c],25);
+			changeImage('two',	[context,hcontext,h2context],[c,hc,hc],	100);
+			changeImage('three',[context,hcontext,h2context],[c,hc,hc],	20);
+		</script>
+</body>
+</html>
